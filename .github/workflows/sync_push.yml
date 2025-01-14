@@ -1,0 +1,36 @@
+name: Sync Repositories
+
+on:
+  push:
+    branches:
+       - '**'
+  pull_request:
+    branches:
+       - '**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add Target Repository as Remote
+        run: git remote add target git@github.com:krishd-amd/onload.git
+
+      - name: Sync to Target Repository
+        run: |
+          BRANCH=$(echo "${{ github.ref_name }}")
+          git push target $BRANCH:$BRANCH --force
